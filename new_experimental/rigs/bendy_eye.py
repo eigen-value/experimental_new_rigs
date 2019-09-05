@@ -6,15 +6,17 @@
 import bpy
 from mathutils import Vector
 from rna_prop_ui import rna_idprop_ui_prop_get
-from ...utils import copy_bone, put_bone
-from ...utils import org, strip_org, make_deformer_name, make_mechanism_name
-from ...utils import create_circle_widget, create_cube_widget
-from ...utils import MetarigError
-from ...utils import make_constraints_from_string, align_bone_y_axis, align_bone_z_axis
-from ..widgets import create_eye_widget, create_eyes_widget, create_widget_from_cluster, create_gear_widget
+from rigify.utils import copy_bone, put_bone
+from rigify.utils import org, strip_org, make_deformer_name, make_mechanism_name
+from rigify.utils import create_circle_widget, create_cube_widget
+from rigify.utils import MetarigError
+from rigify.utils import align_bone_y_axis, align_bone_z_axis
+from rigify.rigs.widgets import create_eye_widget, create_eyes_widget, create_gear_widget
 from .meshy_rig import MeshyRig
 from .control_snapper import ControlSnapper
 from .control_layers_generator import ControlLayersGenerator
+from .utils import make_constraints_from_string
+from .widgets import create_widget_from_cluster
 
 script = """
 all_controls   = [%s]
@@ -171,7 +173,7 @@ class Rig(MeshyRig):
         pose_bones = self.obj.pose.bones
 
         for pb in pose_bones:
-            if pb.rigify_type == 'experimental.bendy_eye' and pb.rigify_parameters.clustered_eye\
+            if pb.rigify_type == 'bendy_eye' and pb.rigify_parameters.clustered_eye\
                     and pb.parent == pose_bones[self.base_bone].parent:
                 base_name = strip_org(pb.name)
                 names.append(base_name)
@@ -186,7 +188,7 @@ class Rig(MeshyRig):
         pose_bones = self.obj.pose.bones
 
         for pb in pose_bones:
-            if pb.rigify_type == 'experimental.bendy_eye' and pb.rigify_parameters.clustered_eye \
+            if pb.rigify_type == 'bendy_eye' and pb.rigify_parameters.clustered_eye \
                     and pb.parent == pose_bones[self.base_bone].parent:
                 positions.append(pb.head)
 
@@ -853,7 +855,7 @@ def create_sample(obj):
 
     bpy.ops.object.mode_set(mode='OBJECT')
     pbone = obj.pose.bones[bones['eye.L']]
-    pbone.rigify_type = 'experimental.bendy_eye'
+    pbone.rigify_type = 'bendy_eye'
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False
@@ -974,7 +976,7 @@ def add_parameters(params):
 
     params.make_deform = bpy.props.BoolProperty(
         name="Deform",
-        default= True,
+        default=True,
         description="Create a deform bone for the copy"
     )
 
@@ -988,7 +990,7 @@ def add_parameters(params):
 
         name = pb.name
 
-        if value not in obj.pose.bones or obj.pose.bones[value].rigify_type != 'experimental.bendy_eye':
+        if value not in obj.pose.bones or obj.pose.bones[value].rigify_type != 'bendy_eye':
             self['paired_eye'] = ''
             return
         else:
@@ -1008,7 +1010,7 @@ def add_parameters(params):
             return ''
 
     class EyeName(bpy.types.PropertyGroup):
-        name = bpy.props.StringProperty()
+        name: bpy.props.StringProperty()
 
     bpy.utils.register_class(EyeName)
 
@@ -1049,7 +1051,7 @@ def parameters_ui(layout, params):
 
     bones = bpy.context.active_object.pose.bones
     for t in bones:
-        if t.rigify_type == 'experimental.bendy_eye':
+        if t.rigify_type == 'bendy_eye':
             id_store.other_eyes.add()
             id_store.other_eyes[-1].name = t.name
 

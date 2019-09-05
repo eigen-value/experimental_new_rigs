@@ -8,13 +8,14 @@
 import bpy
 from rna_prop_ui import rna_idprop_ui_prop_get
 
-from ...utils import copy_bone, align_bone_z_axis, align_bone_y_axis
-from ...utils import strip_org, make_mechanism_name
-from ...utils import MetarigError
-from ...utils import make_constraints_from_string, create_cube_widget
-from ..widgets import create_jaw_widget
+from rigify.utils import copy_bone, align_bone_z_axis, align_bone_y_axis
+from rigify.utils import strip_org, make_mechanism_name
+from rigify.utils import MetarigError
+from rigify.utils import create_cube_widget
+from rigify.rigs.widgets import create_jaw_widget
 from .meshy_rig import MeshyRig
 from .control_layers_generator import ControlLayersGenerator
+from .utils import make_constraints_from_string
 from mathutils import Vector
 
 script = """
@@ -420,7 +421,7 @@ def create_sample(obj):
 
     bpy.ops.object.mode_set(mode='OBJECT')
     pbone = obj.pose.bones[bones['mouth']]
-    pbone.rigify_type = 'experimental.bendy_jaw'
+    pbone.rigify_type = 'bendy_jaw'
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False

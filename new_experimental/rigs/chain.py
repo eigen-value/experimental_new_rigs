@@ -1,7 +1,9 @@
 import bpy
 from enum import Enum
-from ...utils import copy_bone, strip_org, make_mechanism_name, make_deformer_name
-from ...utils import put_bone, make_constraints_from_string, create_sphere_widget
+from rigify.utils import copy_bone, strip_org, make_mechanism_name, make_deformer_name
+from rigify.utils import put_bone, create_sphere_widget
+
+from .utils import make_constraints_from_string
 
 
 class ChainType(Enum):

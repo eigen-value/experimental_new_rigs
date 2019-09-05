@@ -1,7 +1,8 @@
 import bpy
-from ...utils import strip_org
-from ...utils import MetarigError, get_rig_type
+from rigify.utils import strip_org
+from rigify.utils import MetarigError
 
+from .utils import get_rig_type
 from .chain import Chain, ChainType
 from .base_rig import BaseRig
 from .control_layers_generator import ControlLayersGenerator

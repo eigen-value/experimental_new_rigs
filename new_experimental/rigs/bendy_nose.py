@@ -5,11 +5,11 @@
 
 import bpy
 
-from ...utils import strip_org, copy_bone, adjust_widget
-from ..widgets import create_widget_from_cluster
+from rigify.utils import strip_org, copy_bone
+from .widgets import create_widget_from_cluster
 from .meshy_rig import MeshyRig
 from .chain import Chain
-
+from .utils import adjust_widget
 
 class Rig(MeshyRig):
 
@@ -104,7 +104,7 @@ def add_parameters(params):
 
     params.bbones = bpy.props.IntProperty(
         name='bbone segments',
-        default=3,
+        default=10,
         min=1,
         description='Number of segments'
     )
@@ -175,7 +175,7 @@ def create_sample(obj):
 
     bpy.ops.object.mode_set(mode='OBJECT')
     pbone = obj.pose.bones[bones['nose']]
-    pbone.rigify_type = 'experimental.bendy_nose'
+    pbone.rigify_type = 'bendy_nose'
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False

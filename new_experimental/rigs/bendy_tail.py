@@ -2,10 +2,12 @@ import bpy
 
 from .chainy_rig import ChainyRig
 from .control_layers_generator import ControlLayersGenerator
-from ...utils import make_mechanism_name, make_constraints_from_string
-from ...utils import flip_bone, org, strip_org, copy_bone, put_bone, align_bone_y_axis
-from ...utils import create_sphere_widget, create_circle_widget
-from ..widgets import create_ballsocket_widget
+from rigify.utils import make_mechanism_name
+from rigify.utils import flip_bone, org, strip_org, copy_bone, put_bone, align_bone_y_axis
+from rigify.utils import create_sphere_widget, create_circle_widget
+from rigify.rigs.widgets import create_ballsocket_widget
+
+from .utils import make_constraints_from_string
 
 
 class Rig(ChainyRig):
@@ -231,7 +233,7 @@ def create_sample(obj):
 
     bpy.ops.object.mode_set(mode='OBJECT')
     pbone = obj.pose.bones[bones['spine']]
-    pbone.rigify_type = 'experimental.bendy_tail'
+    pbone.rigify_type = 'bendy_tail'
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False

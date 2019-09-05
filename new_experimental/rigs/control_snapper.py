@@ -1,5 +1,5 @@
 import bpy
-from ...utils import copy_bone
+from rigify.utils import copy_bone
 
 
 class ControlSnapper:

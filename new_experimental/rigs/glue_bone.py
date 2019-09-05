@@ -1,10 +1,10 @@
 import bpy
 
-from ...utils import make_constraints_from_string, make_deformer_name, make_mechanism_name
-from ...utils import strip_org, copy_bone, put_bone
+from rigify.utils import make_deformer_name, make_mechanism_name
+from rigify.utils import strip_org, copy_bone, put_bone
 
 from .base_rig import BaseRig
-
+from .utils import make_constraints_from_string
 
 class Rig(BaseRig):
 
@@ -246,7 +246,7 @@ def create_sample(obj):
 
     bpy.ops.object.mode_set(mode='OBJECT')
     pbone = obj.pose.bones[bones['Bone']]
-    pbone.rigify_type = 'experimental.glue_bone'
+    pbone.rigify_type = 'glue_bone'
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False

@@ -678,7 +678,7 @@ def create_sample(obj):
 
     bpy.ops.object.mode_set(mode='OBJECT')
     pbone = obj.pose.bones[bones['face']]
-    pbone.rigify_type = 'experimental.meshy_face'
+    pbone.rigify_type = 'meshy_face'
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False
@@ -741,7 +741,7 @@ def create_sample(obj):
     pbone.lock_scale = (False, False, False)
     pbone.rotation_mode = 'QUATERNION'
     pbone = obj.pose.bones[bones['eye.L']]
-    pbone.rigify_type = 'experimental.bendy_eye'
+    pbone.rigify_type = 'bendy_eye'
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False
@@ -749,7 +749,7 @@ def create_sample(obj):
     pbone.rotation_mode = 'QUATERNION'
     pbone.rigify_parameters.paired_eye = 'eye.R'
     pbone = obj.pose.bones[bones['eye.R']]
-    pbone.rigify_type = 'experimental.bendy_eye'
+    pbone.rigify_type = 'bendy_eye'
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False
@@ -785,14 +785,14 @@ def create_sample(obj):
     pbone.lock_scale = (False, False, False)
     pbone.rotation_mode = 'QUATERNION'
     pbone = obj.pose.bones[bones['tongue']]
-    pbone.rigify_type = 'experimental.bendy_tongue'
+    pbone.rigify_type = 'bendy_tongue'
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False
     pbone.lock_scale = (False, False, False)
     pbone.rotation_mode = 'QUATERNION'
     pbone = obj.pose.bones[bones['mouth']]
-    pbone.rigify_type = 'experimental.bendy_jaw'
+    pbone.rigify_type = 'bendy_jaw'
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False
