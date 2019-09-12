@@ -12,10 +12,14 @@ from rigify.utils import copy_bone, align_bone_z_axis, align_bone_y_axis
 from rigify.utils import strip_org, make_mechanism_name
 from rigify.utils import MetarigError
 from rigify.utils import create_cube_widget
+from rigify.utils import put_bone
 from rigify.rigs.widgets import create_jaw_widget
 from .meshy_rig import MeshyRig
+from .chainy_rig import ChainyRig
+from .base_rig import BaseRig
 from .control_layers_generator import ControlLayersGenerator
 from .utils import make_constraints_from_string
+from .widgets import create_widget_from_cluster
 from mathutils import Vector
 
 script = """
@@ -27,7 +31,7 @@ if is_selected(all_controls):
 """
 
 
-class Rig(MeshyRig):
+class Rig(ChainyRig):
 
     def __init__(self, obj, bone_name, params):
 
@@ -36,6 +40,9 @@ class Rig(MeshyRig):
         self.main_mch = self.get_jaw()
         self.lip_len = None
         self.mouth_bones = self.get_mouth()
+
+        self.remove_chains(self.flatten(self.mouth_bones))
+
         self.rotation_mode = params.rotation_mode
 
         self.layer_generator = ControlLayersGenerator(self)
@@ -83,8 +90,6 @@ class Rig(MeshyRig):
             if i not in [top_idx, bottom_idx]:
                 mouth_bones_dict['corners'].append(b)
 
-        print(mouth_bones_dict)
-
         return mouth_bones_dict
 
     def orient_org_bones(self):
@@ -119,6 +124,27 @@ class Rig(MeshyRig):
 
             self.bones['jaw_mch']['jaw_masters'].append(jaw_m)
 
+        self.bones['mouth_mch'] = dict()
+
+        org_top = self.mouth_bones['top'][0]
+        top_mch_name = make_mechanism_name(strip_org(org_top))
+        top_mch = copy_bone(self.obj, org_top, top_mch_name)
+        self.bones['mouth_mch']['top'] = [top_mch]
+        edit_bones[top_mch].use_connect = False
+
+        self.bones['mouth_mch']['corners'] = []
+        for org_name in self.mouth_bones['corners']:
+            mch_name = make_mechanism_name(strip_org(org_name))
+            mch = copy_bone(self.obj, org_name, mch_name)
+            self.bones['mouth_mch']['corners'].append(mch)
+            edit_bones[mch].use_connect = False
+
+        org_bottom = self.mouth_bones['bottom'][0]
+        bottom_mch_name = make_mechanism_name(strip_org(org_bottom))
+        bottom_mch = copy_bone(self.obj, org_bottom, bottom_mch_name)
+        self.bones['mouth_mch']['bottom'] = [bottom_mch]
+        edit_bones[bottom_mch].use_connect = False
+
         # create remaining subchain mch-s
         super().create_mch()
 
@@ -137,6 +163,31 @@ class Rig(MeshyRig):
         jaw_ctrl = copy_bone(self.obj, self.main_mch, jaw_ctrl_name)
         self.bones['jaw_ctrl']['jaw'] = jaw_ctrl
         edit_bones[jaw_ctrl].use_connect = False
+
+        self.bones['mouth_ctrl'] = dict()
+
+        org_top = self.mouth_bones['top'][0]
+        top_ctrl = copy_bone(self.obj, org_top, strip_org(org_top))
+        self.bones['mouth_ctrl']['top'] = [top_ctrl]
+        edit_bones[top_ctrl].use_connect = False
+
+        self.bones['mouth_ctrl']['corners'] = []
+        for org_name in self.mouth_bones['corners']:
+            ctrl = copy_bone(self.obj, org_name, strip_org(org_name))
+            self.bones['mouth_ctrl']['corners'].append(ctrl)
+            edit_bones[top_ctrl].use_connect = False
+
+        org_bottom = self.mouth_bones['bottom'][0]
+        bottom_ctrl = copy_bone(self.obj, org_bottom, strip_org(org_bottom))
+        self.bones['mouth_ctrl']['bottom'] = [bottom_ctrl]
+        edit_bones[bottom_ctrl].use_connect = False
+
+        mouth_center = (edit_bones[org_top].head + edit_bones[org_bottom].head) / 2
+
+        main_mouth_ctrl = copy_bone(self.obj, org_top, "main_mouth")
+        self.bones['mouth_ctrl']['main'] = main_mouth_ctrl
+        edit_bones[main_mouth_ctrl].use_connect = False
+        put_bone(self.obj, main_mouth_ctrl, mouth_center)
 
         super().create_controls()
 
@@ -158,11 +209,11 @@ class Rig(MeshyRig):
         subtarget = self.bones['jaw_ctrl']['jaw']
         make_constraints_from_string(owner, self.obj, subtarget, "CT0.2WW0.0")
 
-        influence_div = 1/len(self.bones['jaw_mch']['jaw_masters'])
+        influences = [1.0, 0.45, 0.1]
         for i, j_m in enumerate(self.bones['jaw_mch']['jaw_masters']):
             owner = pose_bones[j_m]
             subtarget = self.bones['jaw_ctrl']['jaw']
-            influence = 1 - i * influence_div
+            influence = influences[i]
             make_constraints_from_string(owner, self.obj, subtarget, "CT%sWW0.0" % influence)
             if j_m != self.bones['jaw_mch']['jaw_masters'][-1]:
                 owner = pose_bones[j_m]
@@ -170,33 +221,48 @@ class Rig(MeshyRig):
                 make_constraints_from_string(owner, self.obj, subtarget, "CT0.0WW0.0")
             # add limits on upper_lip jaw_master
             if j_m == self.bones['jaw_mch']['jaw_masters'][-2]:
-                make_constraints_from_string(owner, self.obj, "", "LLmY0mZ0#LRmX0MX%f" % (3.14/2))
+                make_constraints_from_string(owner, self.obj, "", "LLmY0mZ0#LRmX%fMX0" % (-3.14/2))
 
-        # lip_bones = []
-        # lip_bones.extend(self.mouth_bones['top'])
-        # lip_bones.extend(self.mouth_bones['bottom'])
-        #
-        # for lip_bone in lip_bones:
-        #     lip_bone = strip_org(lip_bone)
-        #     total_len = 0
-        #     influence_share = []
-        #     for def_b in self.bones['def'][lip_bone]:
-        #         total_len += pose_bones[def_b].length
-        #         influence_share.append(total_len)
-        #     influence_share = [val / total_len for val in influence_share]
-        #     for i, ctrl in enumerate(self.bones['ctrl'][lip_bone][1:-1]):
-        #         owner = pose_bones[self.bones['ctrl'][lip_bone][i+1]]
-        #         subtarget = self.bones['ctrl'][lip_bone][-1]
-        #         infl = influence_share[i]
-        #         make_constraints_from_string(owner, self.obj, subtarget, "CL%sLLO0.0" % infl)
-        #         subtarget = self.bones['ctrl'][lip_bone][0]
-        #         infl = 1 - influence_share[i]
-        #         make_constraints_from_string(owner, self.obj, subtarget, "CL%sLLO0.0" % infl)
-        #         make_constraints_from_string(owner, self.obj, subtarget, "CR1.0LLO0.0")
-        #         make_constraints_from_string(owner, self.obj, subtarget, "CS1.0LLO0.0")
+        for bone in self.flatten(self.bones['mouth_mch']):
+            owner = pose_bones[bone]
+            subtarget = self.bones['mouth_ctrl']['main']
+            make_constraints_from_string(owner, self.obj, subtarget, "CT1.0LL0.0")
 
         # make the standard bendy rig constraints
         super().make_constraints()
+
+    def make_drivers(self):
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+        pose_bones = self.obj.pose.bones
+
+        # Add mouth_lock property on jaw_master
+        jaw_master = pose_bones[self.bones['jaw_ctrl']['jaw']]
+        prop_name = 'mouth_lock'
+        jaw_master[prop_name] = 0.0
+        prop = rna_idprop_ui_prop_get(jaw_master, prop_name)
+        prop["min"] = 0.0
+        prop["max"] = 1.0
+        prop["soft_min"] = 0.0
+        prop["soft_max"] = 1.0
+        prop["description"] = prop_name
+
+        for bone in self.bones['jaw_mch']['jaw_masters'][:-1]:
+            drv = pose_bones[bone].constraints[1].driver_add("influence").driver
+            drv.type = 'SUM'
+
+            var = drv.variables.new()
+            var.name = prop_name
+            var.type = "SINGLE_PROP"
+            var.targets[0].id = self.obj
+            var.targets[0].data_path = jaw_master.path_from_id() + '[' + '"' + prop_name + '"' + ']'
+
+        all_ctrls = self.flatten(self.bones['mouth_ctrl'])
+        all_ctrls.append(self.bones['jaw_ctrl']['jaw'])
+
+        controls_string = ", ".join(["'" + x + "'" for x in all_ctrls])
+
+        return [script % (controls_string, self.bones['jaw_ctrl']['jaw'], prop_name)]
 
     def parent_bones(self):
         """
@@ -209,15 +275,27 @@ class Rig(MeshyRig):
 
         # Parenting to jaw MCHs
         jaw_masters = self.bones['jaw_mch']['jaw_masters']
-        top_main = self.get_ctrl_by_index(strip_org(self.mouth_bones['top'][0]), 0)
-        corner_1 = self.get_ctrl_by_index(strip_org(self.mouth_bones['corners'][0]), 0)
-        corner_2 = self.get_ctrl_by_index(strip_org(self.mouth_bones['corners'][1]), 0)
-        bottom_main = self.get_ctrl_by_index(strip_org(self.mouth_bones['bottom'][0]), 0)
+        top_main = self.bones['mouth_ctrl']['top'][0]
+        corner_1 = self.bones['mouth_ctrl']['corners'][0]
+        corner_2 = self.bones['mouth_ctrl']['corners'][1]
+        bottom_main = self.bones['mouth_ctrl']['bottom'][0]
 
-        edit_bones[top_main].parent = edit_bones[jaw_masters[0]]
-        edit_bones[corner_1].parent = edit_bones[jaw_masters[1]]
-        edit_bones[corner_2].parent = edit_bones[jaw_masters[1]]
-        edit_bones[bottom_main].parent = edit_bones[jaw_masters[2]]
+        top_main_mch = self.bones['mouth_mch']['top'][0]
+        corner_1_mch = self.bones['mouth_mch']['corners'][0]
+        corner_2_mch = self.bones['mouth_mch']['corners'][1]
+        bottom_main_mch = self.bones['mouth_mch']['bottom'][0]
+
+        edit_bones[top_main_mch].parent = edit_bones[jaw_masters[2]]
+        edit_bones[corner_1_mch].parent = edit_bones[jaw_masters[1]]
+        edit_bones[corner_2_mch].parent = edit_bones[jaw_masters[1]]
+        edit_bones[bottom_main_mch].parent = edit_bones[jaw_masters[0]]
+
+        edit_bones[top_main].parent = edit_bones[top_main_mch]
+        edit_bones[corner_1].parent = edit_bones[corner_1_mch]
+        edit_bones[corner_2].parent = edit_bones[corner_2_mch]
+        edit_bones[bottom_main].parent = edit_bones[bottom_main_mch]
+
+        edit_bones[self.bones['mouth_ctrl']['main']].parent = edit_bones[jaw_masters[1]]
 
         # parenting what's connected to main jaw mch to jaw ctrl
         for child in edit_bones[self.main_mch].children:
@@ -227,10 +305,13 @@ class Rig(MeshyRig):
 
     def create_widgets(self):
 
-        top_main = self.get_ctrl_by_index(strip_org(self.mouth_bones['top'][0]), 0)
-        corner_1 = self.get_ctrl_by_index(strip_org(self.mouth_bones['corners'][0]), 0)
-        corner_2 = self.get_ctrl_by_index(strip_org(self.mouth_bones['corners'][1]), 0)
-        bottom_main = self.get_ctrl_by_index(strip_org(self.mouth_bones['bottom'][0]), 0)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        pose_bones = self.obj.pose.bones
+
+        top_main = self.bones['mouth_ctrl']['top'][0]
+        corner_1 = self.bones['mouth_ctrl']['corners'][0]
+        corner_2 = self.bones['mouth_ctrl']['corners'][1]
+        bottom_main = self.bones['mouth_ctrl']['bottom'][0]
 
         create_cube_widget(self.obj, top_main)
         create_cube_widget(self.obj, corner_1)
@@ -239,6 +320,14 @@ class Rig(MeshyRig):
 
         jaw_ctrl = self.bones['jaw_ctrl']['jaw']
         create_jaw_widget(self.obj, jaw_ctrl)
+
+        main_mouth_ctrl = self.bones['mouth_ctrl']['main']
+        cluster = []
+
+        for b in self.flatten(self.mouth_bones):
+            cluster.append(pose_bones[b].bone.head)
+
+        create_widget_from_cluster(self.obj, main_mouth_ctrl, cluster)
 
         super().create_widgets()
 

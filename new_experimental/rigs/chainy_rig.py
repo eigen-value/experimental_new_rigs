@@ -36,30 +36,39 @@ class ChainyRig(BaseRig):
         return names
 
     def get_chains(self):
-            """
-            Returns all the ORG bones starting a chain in the rig and their subchains start bones
-            :return:
-            """
+        """
+        Returns all the ORG bones starting a chain in the rig and their subchains start bones
+        :return:
+        """
 
-            bpy.ops.object.mode_set(mode='EDIT')
-            edit_bones = self.obj.data.edit_bones
+        bpy.ops.object.mode_set(mode='EDIT')
+        edit_bones = self.obj.data.edit_bones
 
-            chains = dict()
+        chains = dict()
 
-            if not self.single:
-                for name in self.bones['org'][1:]:
-                    eb = edit_bones[name]
-                    if not eb.use_connect and eb.parent == edit_bones[self.base_bone]:
-                        chain = Chain(self.obj, name, self.orientation_bone, chain_type=self.chain_type)
-                        self.chain_objects[chain.base_name] = chain
-                        chains[name] = self.get_subchains(name)
-            else:
-                name = self.bones['org'][0]
-                chain = Chain(self.obj, name, self.orientation_bone, chain_type=self.chain_type)
-                self.chain_objects[chain.base_name] = chain
-                chains[name] = self.get_subchains(name)
+        if not self.single:
+            for name in self.bones['org'][1:]:
+                eb = edit_bones[name]
+                if not eb.use_connect and eb.parent == edit_bones[self.base_bone]:
+                    chain = Chain(self.obj, name, self.orientation_bone, chain_type=self.chain_type)
+                    self.chain_objects[chain.base_name] = chain
+                    chains[name] = self.get_subchains(name)
+        else:
+            name = self.bones['org'][0]
+            chain = Chain(self.obj, name, self.orientation_bone, chain_type=self.chain_type)
+            self.chain_objects[chain.base_name] = chain
+            chains[name] = self.get_subchains(name)
 
-            return chains
+        return chains
+
+    def remove_chains(self, remove_list):
+
+        for bone in remove_list:
+            base_name = strip_org(bone)
+            if base_name in self.chain_objects:
+                del self.chain_objects[base_name]
+            if bone in self.chains:
+                del self.chains[bone]
 
     def get_chain_bones(self, first_name):
         """
@@ -107,9 +116,6 @@ class ChainyRig(BaseRig):
 
         if exclude is None:
             exclude = []
-
-        print("exclude:")
-        print(exclude)
 
         subchains = []
 
