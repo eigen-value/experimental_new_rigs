@@ -145,6 +145,15 @@ class Rig(ChainyRig):
         self.bones['mouth_mch']['bottom'] = [bottom_mch]
         edit_bones[bottom_mch].use_connect = False
 
+        mbs = self.flatten(self.bones['mouth_mch'])
+        mouth_center = edit_bones[mbs[0]].head
+        for b in mbs[1:]:
+            mouth_center = mouth_center + edit_bones[b].head
+        mouth_center = mouth_center / len(mbs)
+
+        for b in self.flatten(self.bones['mouth_mch']):
+            put_bone(self.obj, b, mouth_center)
+
         # create remaining subchain mch-s
         super().create_mch()
 
