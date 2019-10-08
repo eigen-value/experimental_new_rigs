@@ -67,6 +67,7 @@ def get_cluster_span(cluster):
 
     return [x_span, y_span, z_span]
 
+
 def get_2d_border(cluster, max_points=None, size=1.0, double=True):
 
     if not max_points:
@@ -124,3 +125,50 @@ def get_2d_border(cluster, max_points=None, size=1.0, double=True):
                 j += 1
 
     return verts, edges
+
+
+def adjust_widget(mesh, axis='y', offset=0.0):
+
+    if axis[0] == '-':
+        s = -1
+        axis = axis[1]
+    else:
+        s = 1
+
+    trans_matrix = Matrix.Translation((0.0, offset, 0.0))
+    rot_matrix = Matrix(((1.0, 0.0, 0.0, 0.0),
+            (0.0, s*1.0, 0.0, 0.0),
+            (0.0, 0.0, 1.0, 0.0),
+            (0.0, 0.0, 0.0, 1.0)))
+
+    if axis == "x":
+        rot_matrix = Matrix.Rotation(-s*pi/2, 4, 'Z')
+        trans_matrix = Matrix.Translation((offset, 0.0, 0.0))
+
+    elif axis == "z":
+        rot_matrix = Matrix.Rotation(s*pi/2, 4, 'X')
+        trans_matrix = Matrix.Translation((0.0, 0.0, offset))
+
+    for vert in mesh.vertices:
+        vert.co = (trans_matrix @ rot_matrix @ vert.co.to_4d()).to_3d()
+
+
+def create_chain_widget(rig, bone_name, cube=False, radius=0.5, invert=False, bone_transform_name=None, axis="y", offset=0.0):
+    """Creates a basic chain widget
+    """
+    obj = create_widget(rig, bone_name, bone_transform_name)
+    if obj is not None:
+        r = radius
+        if cube:
+            rh = r
+        else:
+            rh = radius/2
+        if invert:
+            verts = [(rh, rh, rh), (r, -r, r), (-r, -r, r), (-rh, rh, rh), (rh, rh, -rh), (r, -r, -r), (-r, -r, -r), (-rh, rh, -rh)]
+        else:
+            verts = [(r, r, r), (rh, -rh, rh), (-rh, -rh, rh), (-r, r, r), (r, r, -r), (rh, -rh, -rh), (-rh, -rh, -rh), (-r, r, -r)]
+        edges = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4), (0, 4), (1, 5), (2, 6), (3, 7)]
+        mesh = obj.data
+        mesh.from_pydata(verts, edges, [])
+        mesh.update()
+        adjust_widget(mesh, axis=axis, offset=offset)

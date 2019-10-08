@@ -78,17 +78,23 @@ class Rig(ChainyRig):
 
         mouth_bones_dict = {'top': [], 'corners': [], 'bottom': []}
 
-        m_b_z_positions = [edit_bones[name].head.z for name in lip_bones]
+        bpy.ops.object.mode_set(mode='OBJECT')
+        pose_bones = self.obj.pose.bones
 
-        top_idx = m_b_z_positions.index(max(m_b_z_positions))
-        mouth_bones_dict['top'].append(lip_bones[top_idx])
-
-        bottom_idx = m_b_z_positions.index(min(m_b_z_positions))
-        mouth_bones_dict['bottom'].append(lip_bones[bottom_idx])
-
-        for i, b in enumerate(lip_bones):
-            if i not in [top_idx, bottom_idx]:
+        for b in lip_bones:
+            if pose_bones[b].rigify_parameters.bone_type == 'lip.T':
+                mouth_bones_dict['top'].append(b)
+            if pose_bones[b].rigify_parameters.bone_type == 'lip.B':
+                mouth_bones_dict['bottom'].append(b)
+            elif pose_bones[b].rigify_parameters.bone_type == 'lip.L' or\
+                    pose_bones[b].rigify_parameters.bone_type == 'lip.R':
                 mouth_bones_dict['corners'].append(b)
+
+        if not len(mouth_bones_dict['top']) == 1 \
+                or not len(mouth_bones_dict['bottom']) == 1\
+                or not len(mouth_bones_dict['corners']) == 2:
+            raise MetarigError("Exactly 4 bones w property rigify_parameters.bone_type = lip.X (T,B,L,R) must be parented to main bone")
+
 
         return mouth_bones_dict
 
@@ -236,6 +242,11 @@ class Rig(ChainyRig):
             owner = pose_bones[bone]
             subtarget = self.bones['mouth_ctrl']['main']
             make_constraints_from_string(owner, self.obj, subtarget, "CT1.0LL0.0")
+
+        for bone in self.flatten(self.mouth_bones):
+            owner = pose_bones[bone]
+            subtarget = strip_org(bone)
+            make_constraints_from_string(owner, self.obj, subtarget, "CT1.0WW0.0")
 
         # make the standard bendy rig constraints
         super().make_constraints()
@@ -410,6 +421,7 @@ def create_sample(obj):
     pbone.rotation_mode = 'QUATERNION'
     pbone = obj.pose.bones[bones['lip.T']]
     pbone.rigify_type = ''
+    pbone.rigify_parameters.bone_type = "lip.T"
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False
@@ -417,6 +429,7 @@ def create_sample(obj):
     pbone.rotation_mode = 'QUATERNION'
     pbone = obj.pose.bones[bones['lip.L']]
     pbone.rigify_type = ''
+    pbone.rigify_parameters.bone_type = "lip.L"
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False
@@ -424,12 +437,14 @@ def create_sample(obj):
     pbone.rotation_mode = 'QUATERNION'
     pbone = obj.pose.bones[bones['lip.B']]
     pbone.rigify_type = ''
+    pbone.rigify_parameters.bone_type = "lip.B"
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
     pbone.lock_rotation_w = False
     pbone.lock_scale = (False, False, False)
     pbone.rotation_mode = 'QUATERNION'
     pbone = obj.pose.bones[bones['lip.R']]
+    pbone.rigify_parameters.bone_type = "lip.R"
     pbone.rigify_type = ''
     pbone.lock_location = (False, False, False)
     pbone.lock_rotation = (False, False, False)
@@ -465,6 +480,9 @@ def add_parameters(params):
         description="Auto will align z-axis of jaw ctrl along the plane defined by the main and jaw bones",
         default='automatic'
     )
+
+    params.bone_type = bpy.props.StringProperty(name="Rigify Bone Type String",
+                                                  description="Defines the function of a bone inside the rig_type")
 
     ControlLayersGenerator.add_layer_parameters(params)
 
