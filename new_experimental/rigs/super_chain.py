@@ -195,6 +195,8 @@ class Rig:
 
             if b == org_bones[0]:
                 name = get_bone_name(b.split('.')[0] + suffix, 'ctrl', 'ctrl')
+                if self.params.use_parent_ctrls:
+                    name = make_mechanism_name(name)
                 name = copy_bone(self.obj, org(b), name)
                 align_bone_x_axis(self.obj, name, eb[org(b)].x_axis)
                 ctrl += [name]
@@ -220,11 +222,12 @@ class Rig:
 
             if b == org_bones[-1]:      # Add extra
                 ctrl_name = get_bone_name(b.split('.')[0] + suffix, 'ctrl', 'ctrl')
+                if self.params.use_parent_ctrls:
+                    ctrl_name = make_mechanism_name(ctrl_name)
                 ctrl_name = copy_bone(self.obj, org(b), ctrl_name)
 
                 self.orient_bone(eb[ctrl_name], 'y', eb[ctrl_name].length / 2)
 
-                # TODO check this if else
                 if self.params.conv_bone:
                     align_bone_y_axis(self.obj, ctrl_name, eb[org(self.params.conv_bone)].y_axis)
                     align_bone_x_axis(self.obj, ctrl_name, eb[org(self.params.conv_bone)].x_axis)
@@ -303,7 +306,6 @@ class Rig:
                 eb[b].parent = eb[bones['chain']['mch'][0]]
                 eb[b].use_connect = True
 
-        # Todo check case when sup_chain is in bigger rig
         eb[bones['def'][0]].parent = eb[bones['chain']['mch'][0]]
 
         for i, twk in enumerate(bones['chain']['tweak']):
@@ -733,6 +735,12 @@ def add_parameters(params):
         description=""
         )
 
+    params.use_parent_ctrls = bpy.props.BoolProperty(
+        name="Use parent/convergence ctrls",
+        default=False,
+        description="Use parent and convengerce controls only"
+        )
+
     params.cluster_ctrls = bpy.props.BoolProperty(
         name="Cluster controls",
         default=False,
@@ -794,6 +802,9 @@ def parameters_ui(layout, params):
 
     r = layout.row()
     r.prop(params, 'def_parenting')
+
+    r = layout.row()
+    r.prop(params, 'use_parent_ctrls')
 
     r = layout.row()
     r.prop(params, 'cluster_ctrls')
